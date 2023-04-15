@@ -29,7 +29,7 @@ import { nanoid } from "nanoid"
 import { useQueryClient } from "@tanstack/react-query"
 import { PageContent } from "~/components/common/PageContent"
 import type { Root } from "hast"
-import type { EditorView } from "@codemirror/view"
+import type { EditorView, ViewUpdate } from "@codemirror/view"
 import { Editor } from "~/components/ui/Editor"
 import { renderPageContent } from "~/markdown"
 import { Button } from "~/components/ui/Button"
@@ -343,6 +343,7 @@ export default function SubdomainEditor() {
   const [tree, setTree] = useState<Root | null>()
 
   // preview
+
   const parsedContent = useMemo(() => {
     if (values.content) {
       const result = renderPageContent(values.content)
@@ -360,9 +361,24 @@ export default function SubdomainEditor() {
     },
     [setView],
   )
+
+  const isComposing = useRef(false)
+  const bufferedContent = useRef<string>("")
   const onChange = useCallback(
-    (value: string) => {
-      updateValue("content", value)
+    (value: string, viewUpdate?: ViewUpdate) => {
+      if (!view?.composing) {
+        isComposing.current = false
+        updateValue("content", value)
+      } else {
+        if (isComposing.current && viewUpdate) {
+          bufferedContent.current = value
+          return
+        }
+        isComposing.current = true
+        requestAnimationFrame(() => {
+          onChange(bufferedContent.current)
+        })
+      }
     },
     [updateValue],
   )
@@ -514,17 +530,9 @@ export default function SubdomainEditor() {
                 }`}
               >
                 <EditorToolbar view={view} toolbars={toolbars}></EditorToolbar>
-                <UniLink
-                  className="ml-7 align-middle hidden xl:block"
-                  href={`${getSiteLink({
-                    subdomain: "xlog",
-                  })}/xfm`}
-                >
-                  {t("Tip: xLog Flavored Markdown")}
-                </UniLink>
               </div>
               {isMobileLayout ? (
-                <div className="flex items-center space-x-3 w-auto inline-block pl-5">
+                <div className="flex items-center space-x-3 w-auto pl-5">
                   {/* <span
                     className={cn(
                       `text-sm capitalize`,

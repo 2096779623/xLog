@@ -1,6 +1,5 @@
 import { FC, useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
-import { useMediaStore } from "~/hooks/useDarkMode"
+import { useIsDark } from "~/hooks/useDarkMode"
 import { useIsUnmounted } from "~/hooks/useLifecycle"
 import { nanoid } from "nanoid"
 
@@ -12,7 +11,7 @@ export const Mermaid: FC<{
   const [svg, setSvg] = useState("")
   const isUnmounted = useIsUnmounted()
 
-  const isDark = useMediaStore((state) => state.isDark)
+  const isDark = useIsDark()
 
   useEffect(() => {
     import("mermaid").then(async (mo) => {
@@ -52,11 +51,9 @@ export const Mermaid: FC<{
     }
   }, [props.children])
 
-  const { t } = useTranslation("common")
-
   return loading ? (
     <div className="h-[50px] rounded-lg flex items-center justify-center bg-[#ECECFD] dark:bg-[#1F2020] text-sm">
-      Mermaid {t("Loading")}...
+      Mermaid Loading...
     </div>
   ) : svg ? (
     <div dangerouslySetInnerHTML={{ __html: svg }} />
