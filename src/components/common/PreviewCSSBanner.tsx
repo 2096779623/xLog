@@ -1,8 +1,9 @@
 import { useTranslation } from "next-i18next"
 import { UniLink } from "~/components/ui/UniLink"
 import { useRouter } from "next/router"
-import { useEffect, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 import { XMarkIcon } from "@heroicons/react/24/outline"
+import { Transition } from "@headlessui/react"
 
 // https://tailwindui.com/components/marketing/elements/banners
 interface DecorationBackgroundPart {
@@ -126,14 +127,32 @@ const PreviewCSSBanner = () => {
   }, [])
 
   return (
-    <div
-      className={`fixed w-full z-10 isolate flex items-center gap-6 bg-gray-50 px-6 py-6 h-36 sm:px-3.5 flex-col transition-all duration-300 ease-in-out ${
-        isClosed ? "-top-36" : "top-0"
-      }`}
-    >
-      <DecorationBackground />
-      <BannerBody />
-      <StateToggleButton isClosed={isClosed} setClosed={setClosed} />
+    <div>
+      <Transition show={!isClosed} as={Fragment}>
+        <Transition.Child
+          as={Fragment}
+          enter="ease-in-out duration-500"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in-out duration-500"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div
+            className="z-20 fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+            onClick={() => setClosed(true)}
+          />
+        </Transition.Child>
+      </Transition>
+      <div
+        className={`fixed w-full z-20 isolate flex items-center gap-6 bg-gray-50 px-6 py-6 h-36 sm:px-3.5 flex-col transition-all duration-500 ease-in-out ${
+          isClosed ? "-top-36" : "top-0"
+        }`}
+      >
+        <DecorationBackground />
+        <BannerBody />
+        <StateToggleButton isClosed={isClosed} setClosed={setClosed} />
+      </div>
     </div>
   )
 }
