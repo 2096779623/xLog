@@ -72,9 +72,6 @@ export default function SettingsCSSPage() {
       }),
       "_blank",
     )
-    // Reload page
-    // TODO: Find a better method to apply new CSS
-    router.reload()
   }
 
   useEffect(() => {

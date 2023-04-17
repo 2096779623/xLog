@@ -55,6 +55,8 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({
   const [css, setCss] = useState<string | null>(null)
   const [isPreviewCss, setPreviewCss] = useState<boolean>(false)
 
+  const cssStatus = getStorage("css")
+
   useEffect(() => {
     if (site.data) {
       if (
@@ -66,7 +68,6 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({
       }
 
       // Check if is in css preview mode
-      const cssStatus = getStorage("css")
       if (cssStatus?.isPreview) {
         // Is in preview mode, load cached css
         setCss(cssStatus.css || null)
@@ -77,7 +78,7 @@ export const SiteLayout: React.FC<SiteLayoutProps> = ({
         setPreviewCss(false)
       }
     }
-  }, [site.isSuccess, site.data, getStorage])
+  }, [site.isSuccess, site.data, cssStatus])
 
   return (
     <div

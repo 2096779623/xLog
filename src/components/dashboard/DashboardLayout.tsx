@@ -1,6 +1,6 @@
 import { cn } from "~/lib/utils"
 import { useRouter } from "next/router"
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 
 import { DISCORD_LINK, APP_NAME, OUR_DOMAIN, SITE_URL } from "~/lib/env"
 import { getSiteLink } from "~/lib/helpers"
@@ -94,10 +94,11 @@ export function DashboardLayout({
   const [css, setCss] = useState<string | null>(null)
   const [isPreviewCss, setPreviewCss] = useState<boolean>(false)
 
+  const cssStatus = getStorage("css")
+
   useEffect(() => {
     if (site.data) {
       // Check if is in css preview mode
-      const cssStatus = getStorage("css")
       if (cssStatus?.isPreview) {
         // Is in preview mode, load cached css
         setCss(cssStatus.css || null)
@@ -108,7 +109,7 @@ export function DashboardLayout({
         setPreviewCss(false)
       }
     }
-  }, [site.data])
+  }, [site.data, cssStatus])
 
   const links: {
     href?: string
