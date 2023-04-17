@@ -1,6 +1,6 @@
 import { cn } from "~/lib/utils"
 import { useRouter } from "next/router"
-import React, { useEffect, useState } from "react"
+import React, { useEffect } from "react"
 
 import { DISCORD_LINK, APP_NAME, OUR_DOMAIN, SITE_URL } from "~/lib/env"
 import { getSiteLink } from "~/lib/helpers"

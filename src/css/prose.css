@@ -1,5 +1,5 @@
 .prose {
-  @apply text-zinc-600 leading-loose relative overflow-hidden;
+  @apply text-zinc-600 leading-loose overflow-hidden;
   word-break: break-word;
 }
 

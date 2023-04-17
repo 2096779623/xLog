@@ -1,10 +1,10 @@
 import "~/css/main.css"
 import "~/generated/uno.css"
+import "aplayer/dist/APlayer.min.css"
 
 import { Toaster } from "react-hot-toast"
 import { createClient, WagmiConfig } from "wagmi"
 import { Hydrate, QueryClient } from "@tanstack/react-query"
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client"
 import {
   ConnectKitProvider,

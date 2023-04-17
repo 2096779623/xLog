@@ -29,7 +29,7 @@ import { nanoid } from "nanoid"
 import { useQueryClient } from "@tanstack/react-query"
 import { PageContent } from "~/components/common/PageContent"
 import type { Root } from "hast"
-import type { EditorView, ViewUpdate } from "@codemirror/view"
+import type { EditorView } from "@codemirror/view"
 import { Editor } from "~/components/ui/Editor"
 import { renderPageContent } from "~/markdown"
 import { Button } from "~/components/ui/Button"
@@ -41,9 +41,10 @@ import { useTranslation } from "next-i18next"
 import { getServerSideProps as getLayoutServerSideProps } from "~/components/dashboard/DashboardLayout.server"
 import { GetServerSideProps } from "next"
 import { serverSidePropsHandler } from "~/lib/server-side-props"
-import { getDefaultSlug } from "~/lib/helpers"
+import { getDefaultSlug } from "~/lib/default-slug"
 import { useMobileLayout } from "~/hooks/useMobileLayout"
 import { OptionsButton } from "~/components/dashboard/OptionsButton"
+import NodeID3 from "node-id3"
 
 export const getServerSideProps: GetServerSideProps = serverSidePropsHandler(
   async (ctx) => {
@@ -124,6 +125,7 @@ export default function SubdomainEditor() {
     tags: "",
     content: "",
   })
+  const [initialContent, setInitialContent] = useState("")
   const [defaultSlug, setDefaultSlug] = useState("")
 
   type Values = typeof values
@@ -160,7 +162,7 @@ export default function SubdomainEditor() {
       }
       setValues(newValues)
     },
-    [setValues, values, draftKey, isPost, queryClient, subdomain],
+    [setValues, values, draftKey, isPost, queryClient, subdomain, t],
   )
 
   const createOrUpdatePage = useCreateOrUpdatePage()
@@ -197,94 +199,111 @@ export default function SubdomainEditor() {
 
   const [isCheersOpen, setIsCheersOpen] = useState(false)
 
-  const ExtraProperties = (
-    <div className="h-full overflow-auto flex-shrink-0 w-[280px] border-l bg-zinc-50 p-5 space-y-5">
-      <div>
-        <Input
-          type="datetime-local"
-          label={t("Publish at") || ""}
-          isBlock
-          name="publishAt"
-          id="publishAt"
-          value={getInputDatetimeValue(values.publishedAt, date.dayjs)}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-            try {
-              const value = date.inLocalTimezone(e.target.value).toISOString()
-              updateValue("publishedAt", value)
-            } catch (error) {}
-          }}
-          help={t(
-            `This ${
-              isPost ? "post" : "page"
-            } will be accessible from this time`,
-          )}
-        />
+  const extraProperties = useMemo(
+    () => (
+      <div className="h-full overflow-auto flex-shrink-0 w-[280px] border-l bg-zinc-50 p-5 space-y-5">
+        <div>
+          <Input
+            type="datetime-local"
+            label={t("Publish at") || ""}
+            isBlock
+            name="publishAt"
+            id="publishAt"
+            value={getInputDatetimeValue(values.publishedAt, date.dayjs)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              try {
+                const value = date.inLocalTimezone(e.target.value).toISOString()
+                updateValue("publishedAt", value)
+              } catch (error) {}
+            }}
+            help={t(
+              `This ${
+                isPost ? "post" : "page"
+              } will be accessible from this time`,
+            )}
+          />
+        </div>
+        <div>
+          <Input
+            name="slug"
+            value={values.slug}
+            placeholder={defaultSlug}
+            label={t(`${isPost ? "Post" : "Page"} slug`) || ""}
+            id="slug"
+            isBlock
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              updateValue("slug", e.target.value)
+            }
+            help={
+              <>
+                {(values.slug || defaultSlug) && (
+                  <>
+                    {t(
+                      `This ${isPost ? "post" : "page"} will be accessible at`,
+                    )}{" "}
+                    <UniLink
+                      href={`${getSiteLink({
+                        subdomain,
+                        domain: site.data?.custom_domain,
+                      })}/${encodeURIComponent(values.slug || defaultSlug)}`}
+                      className="hover:underline"
+                    >
+                      {getSiteLink({
+                        subdomain,
+                        domain: site.data?.custom_domain,
+                        noProtocol: true,
+                      })}
+                      /{encodeURIComponent(values.slug || defaultSlug)}
+                    </UniLink>
+                  </>
+                )}
+              </>
+            }
+          />
+        </div>
+        <div>
+          <Input
+            name="tags"
+            value={values.tags}
+            label={t("Tags") || ""}
+            id="tags"
+            isBlock
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              updateValue("tags", e.target.value)
+            }
+            help={t("Separate multiple tags with English commas") + ` ","`}
+          />
+        </div>
+        <div>
+          <Input
+            label={t("Excerpt") || ""}
+            isBlock
+            name="excerpt"
+            id="excerpt"
+            value={values.excerpt}
+            multiline
+            rows={5}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
+              updateValue("excerpt", e.target.value)
+            }}
+            help={t("Leave it blank to use auto-generated excerpt")}
+          />
+        </div>
       </div>
-      <div>
-        <Input
-          name="slug"
-          value={values.slug}
-          placeholder={defaultSlug}
-          label={t(`${isPost ? "Post" : "Page"} slug`) || ""}
-          id="slug"
-          isBlock
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            updateValue("slug", e.target.value)
-          }
-          help={
-            <>
-              {(values.slug || defaultSlug) && (
-                <>
-                  {t(`This ${isPost ? "post" : "page"} will be accessible at`)}{" "}
-                  <UniLink
-                    href={`${getSiteLink({
-                      subdomain,
-                      domain: site.data?.custom_domain,
-                    })}/${encodeURIComponent(values.slug || defaultSlug)}`}
-                    className="hover:underline"
-                  >
-                    {getSiteLink({
-                      subdomain,
-                      domain: site.data?.custom_domain,
-                      noProtocol: true,
-                    })}
-                    /{encodeURIComponent(values.slug || defaultSlug)}
-                  </UniLink>
-                </>
-              )}
-            </>
-          }
-        />
-      </div>
-      <div>
-        <Input
-          name="tags"
-          value={values.tags}
-          label={t("Tags") || ""}
-          id="tags"
-          isBlock
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            updateValue("tags", e.target.value)
-          }
-          help={t("Separate multiple tags with English commas") + ` ","`}
-        />
-      </div>
-      <div>
-        <Input
-          label={t("Excerpt") || ""}
-          isBlock
-          name="excerpt"
-          id="excerpt"
-          value={values.excerpt}
-          multiline
-          rows={5}
-          onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
-            updateValue("excerpt", e.target.value)
-          }}
-          help={t("Leave it blank to use auto-generated excerpt")}
-        />
-      </div>
-    </div>
+    ),
+    [
+      date,
+      defaultSlug,
+      isPost,
+      site.data?.custom_domain,
+      subdomain,
+      t,
+      updateValue,
+      values.excerpt,
+      values.publishedAt,
+      values.slug,
+      values.tags,
+    ],
   )
 
   useEffect(() => {
@@ -317,7 +336,7 @@ export default function SubdomainEditor() {
 
   useEffect(() => {
     if (!page.data || !draftKey) return
-
+    setInitialContent(page.data.body?.content || "")
     setValues({
       title: page.data.title || "",
       publishedAt: page.data.date_published,
@@ -362,23 +381,9 @@ export default function SubdomainEditor() {
     [setView],
   )
 
-  const isComposing = useRef(false)
-  const bufferedContent = useRef<string>("")
   const onChange = useCallback(
-    (value: string, viewUpdate?: ViewUpdate) => {
-      if (!view?.composing) {
-        isComposing.current = false
-        updateValue("content", value)
-      } else {
-        if (isComposing.current && viewUpdate) {
-          bufferedContent.current = value
-          return
-        }
-        isComposing.current = true
-        requestAnimationFrame(() => {
-          onChange(bufferedContent.current)
-        })
-      }
+    (value: string) => {
+      updateValue("content", value)
     },
     [updateValue],
   )
@@ -387,19 +392,52 @@ export default function SubdomainEditor() {
     async (file: File) => {
       const toastId = toast.loading("Uploading...")
       try {
-        if (!file.type.startsWith("image/")) {
-          throw new Error("You can only upload images")
+        if (
+          !file.type.startsWith("image/") &&
+          !file.type.startsWith("audio/")
+        ) {
+          throw new Error("You can only upload images or audios")
         }
 
         const { key } = await uploadFile(file)
         toast.success("Uploaded!", {
           id: toastId,
         })
-        view?.dispatch(
-          view.state.replaceSelection(
-            `\n![${file.name.replace(/\.\w+$/, "")}](${key})\n`,
-          ),
-        )
+        if (file.type.startsWith("image/")) {
+          view?.dispatch(
+            view.state.replaceSelection(
+              `\n![${file.name.replace(/\.\w+$/, "")}](${key})\n`,
+            ),
+          )
+        } else if (file.type.startsWith("audio/")) {
+          const fileArrayBuffer = await file.arrayBuffer()
+          const fileBuffer = Buffer.from(fileArrayBuffer)
+          const tags = NodeID3.read(fileBuffer)
+          const name = tags.title ?? file.name
+          const artist = tags.artist
+          const cover = await (async () => {
+            const image = tags.image
+            if (!image || typeof image === "string") return image
+
+            const toastId = toast.loading("Uploading cover...")
+            const { key } = await uploadFile(
+              new Blob([image.imageBuffer], { type: image.type.name }),
+            )
+            toast.success("Uploaded cover!", {
+              id: toastId,
+            })
+            return key
+          })()
+          view?.dispatch(
+            view.state.replaceSelection(
+              `\n<audio src="${key}" name="${name}" ${
+                artist ? `artist="${artist}"` : ""
+              } ${cover ? `cover="${cover}"` : ""}><audio>\n`,
+            ),
+          )
+        } else {
+          throw new Error("Unknown upload file type")
+        }
       } catch (error) {
         if (error instanceof Error) {
           toast.error(error.message, { id: toastId })
@@ -447,30 +485,30 @@ export default function SubdomainEditor() {
         const position = computedPosition()
 
         let selfElement
-        let selfPostion
+        let selfPosition
         let targetElement
         let targetPosition
         if (area === "preview") {
           selfElement = previewRef.current.parentElement
-          selfPostion = position.previewElementList
+          selfPosition = position.previewElementList
           targetElement = view.scrollDOM
           targetPosition = position.editorElementList
         } else {
           selfElement = view.scrollDOM
-          selfPostion = position.editorElementList
+          selfPosition = position.editorElementList
           targetElement = previewRef.current.parentElement
           targetPosition = position.previewElementList
         }
 
         let scrollElementIndex = 0
-        for (let i = 0; i < selfPostion.length; i++) {
-          if (scrollTop < selfPostion[i]) {
+        for (let i = 0; i < selfPosition.length; i++) {
+          if (scrollTop < selfPosition[i]) {
             scrollElementIndex = i - 1
             break
           }
         }
 
-        // scroll to buttom
+        // scroll to bottom
         if (scrollTop >= selfElement.scrollHeight - selfElement.clientHeight) {
           targetElement.scrollTop =
             targetElement.scrollHeight - targetElement.clientHeight
@@ -480,9 +518,9 @@ export default function SubdomainEditor() {
         // scroll to position
         if (scrollElementIndex >= 0) {
           let ratio =
-            (scrollTop - selfPostion[scrollElementIndex]) /
-            (selfPostion[scrollElementIndex + 1] -
-              selfPostion[scrollElementIndex])
+            (scrollTop - selfPosition[scrollElementIndex]) /
+            (selfPosition[scrollElementIndex + 1] -
+              selfPosition[scrollElementIndex])
           targetElement.scrollTop =
             ratio *
               (targetPosition[scrollElementIndex + 1] -
@@ -507,6 +545,15 @@ export default function SubdomainEditor() {
     },
     [onScroll],
   )
+
+  const onPreviewButtonClick = useCallback(() => {
+    window.open(
+      `/_site/${subdomain}/preview/${draftKey.replace(
+        `draft-${subdomain}-`,
+        "",
+      )}`,
+    )
+  }, [draftKey, subdomain])
 
   return (
     <>
@@ -573,15 +620,8 @@ export default function SubdomainEditor() {
                     published={visibility !== PageVisibilityEnum.Draft}
                     isRendering={isRendering}
                     renderPage={setIsRendering}
-                    propertiesWidget={ExtraProperties}
-                    previewPage={() => {
-                      window.open(
-                        `/_site/${subdomain}/preview/${draftKey.replace(
-                          `draft-${subdomain}-`,
-                          "",
-                        )}`,
-                      )
-                    }}
+                    propertiesWidget={extraProperties}
+                    previewPage={onPreviewButtonClick}
                   />
                 </div>
               ) : (
@@ -598,17 +638,7 @@ export default function SubdomainEditor() {
                   >
                     {t(visibility as string)}
                   </span>
-                  <Button
-                    isAutoWidth
-                    onClick={() => {
-                      window.open(
-                        `/_site/${subdomain}/preview/${draftKey.replace(
-                          `draft-${subdomain}-`,
-                          "",
-                        )}`,
-                      )
-                    }}
-                  >
+                  <Button isAutoWidth onClick={onPreviewButtonClick}>
                     {t("Preview")}
                   </Button>
                   <PublishButton
@@ -677,7 +707,7 @@ export default function SubdomainEditor() {
                     ) : (
                       <>
                         <Editor
-                          value={values.content}
+                          value={initialContent}
                           onChange={onChange}
                           handleDropFile={handleDropFile}
                           onScroll={onEditorScroll}
@@ -703,7 +733,7 @@ export default function SubdomainEditor() {
                   </div>
                 </div>
               </div>
-              {!isMobileLayout && ExtraProperties}
+              {!isMobileLayout && extraProperties}
             </div>
           </>
         )}
